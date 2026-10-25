@@ -1,0 +1,154 @@
+/* =====================================================================
+ *  LFR Extension
+ * ===================================================================*/
+
+/* ---------- Editor (Source mode + Live Preview) ---------- */
+.cm-line.sb-rtl {
+  direction: rtl !important;
+  text-align: right;
+}
+
+.cm-line.sb-ltr {
+  direction: ltr !important;
+  text-align: left;
+}
+
+/* Inline code and bare URLs are always LTR, even inside an RTL line */
+.markdown-source-view .cm-inline-code,
+.markdown-source-view .cm-url {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* ---------- Reading view / PDF export ---------- */
+.markdown-preview-view pre,
+.markdown-rendered pre {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+.markdown-preview-view code,
+.markdown-rendered code,
+.markdown-preview-view a.sb-url,
+.markdown-rendered a.sb-url,
+.sb-url {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* ---------- Mixed-direction runs (English inside Persian and vice versa) ---------- */
+.sb-iso,
+.sb-run {
+  unicode-bidi: isolate;
+}
+
+/* ---------- Note title ---------- */
+.inline-title[dir="rtl"] {
+  text-align: right;
+}
+.inline-title[dir="ltr"] {
+  text-align: left;
+}
+
+/* ---------- Status bar button ---------- */
+.sb-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.sb-status .sb-status-icon {
+  display: inline-flex;
+}
+.sb-status .sb-status-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---------- Settings: font style buttons ---------- */
+.sb-font-styles {
+  border-top: none;
+  padding-top: 0;
+}
+
+/* =====================================================================
+ *  RTL beautification (can be turned off in the plugin settings)
+ *  Reading view, PDF export and Live Preview widgets (tables / callouts)
+ * ===================================================================*/
+
+/* ----- Lists: bullets / numbers on the right, indent on the right ----- */
+body.sb-beautify .markdown-preview-view ul[dir="rtl"],
+body.sb-beautify .markdown-preview-view ol[dir="rtl"],
+body.sb-beautify .markdown-rendered ul[dir="rtl"],
+body.sb-beautify .markdown-rendered ol[dir="rtl"] {
+  padding-left: 0;
+  padding-right: var(--list-indent, 2em);
+}
+
+body.sb-beautify .markdown-preview-view li[dir="rtl"],
+body.sb-beautify .markdown-rendered li[dir="rtl"] {
+  text-align: right;
+}
+
+/* ----- Checkboxes ----- */
+body.sb-beautify li.task-list-item[dir="rtl"] > input.task-list-item-checkbox,
+body.sb-beautify li.task-list-item[dir="rtl"] > p > input.task-list-item-checkbox {
+  margin-inline-end: 0.5em;
+}
+
+/* ----- Blockquote: bar on the right ----- */
+body.sb-beautify .markdown-preview-view blockquote[dir="rtl"],
+body.sb-beautify .markdown-rendered blockquote[dir="rtl"] {
+  border-left: none;
+  border-right: var(--blockquote-border-thickness, 2px) solid
+    var(--blockquote-border-color, var(--interactive-accent));
+  padding-left: 0;
+  padding-right: var(--size-4-4, 16px);
+  text-align: right;
+}
+
+/* Live Preview quote lines */
+body.sb-beautify .markdown-source-view.mod-cm6 .cm-line.HyperMD-quote.sb-rtl {
+  border-left: none;
+  border-right: var(--blockquote-border-thickness, 2px) solid
+    var(--blockquote-border-color, var(--interactive-accent));
+}
+
+/* ----- Callouts: icon + title on the right, fold arrow on the left ----- */
+body.sb-beautify .callout[dir="rtl"] {
+  text-align: right;
+}
+
+body.sb-beautify .callout[dir="rtl"] > .callout-title > .callout-fold {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+body.sb-beautify .callout[dir="rtl"].is-collapsed > .callout-title > .callout-fold > .svg-icon {
+  transform: rotate(90deg);
+}
+
+/* ----- Tables: first column on the right, cells aligned by their own direction ----- */
+body.sb-beautify table[dir="rtl"] {
+  direction: rtl;
+}
+
+body.sb-beautify th[dir="rtl"],
+body.sb-beautify td[dir="rtl"] {
+  text-align: right;
+}
+
+body.sb-beautify th[dir="ltr"],
+body.sb-beautify td[dir="ltr"] {
+  text-align: left;
+}
+
+/* ----- Headings ----- */
+body.sb-beautify .markdown-preview-view h1[dir="rtl"],
+body.sb-beautify .markdown-preview-view h2[dir="rtl"],
+body.sb-beautify .markdown-preview-view h3[dir="rtl"],
+body.sb-beautify .markdown-preview-view h4[dir="rtl"],
+body.sb-beautify .markdown-preview-view h5[dir="rtl"],
+body.sb-beautify .markdown-preview-view h6[dir="rtl"] {
+  text-align: right;
+}

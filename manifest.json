@@ -1,0 +1,10 @@
+{
+  "id": "LFR-Extension",
+  "name": "LFR Extension",
+  "version": "1.2.0",
+  "minAppVersion": "1.4.0",
+  "description": "Smart RTL/LTR text direction, RTL-friendly markdown, Persian typography tools, per-note and per-folder direction and fonts, and a font manager (Regular/Bold/Italic) that also applies to PDF export.",
+  "author": "xeno-rdx",
+  "isDesktopOnly": false,
+  "authorUrl": "https://github.com/xeno-rdx"
+}
