@@ -30,7 +30,6 @@
       <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.45"/>
     </filter>
   </defs>
-
   <g clip-path="url(#round)">
     <rect width="1200" height="340" fill="url(#bg)"/>
     <rect width="1200" height="340" fill="url(#grid)"/>
