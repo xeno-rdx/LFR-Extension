@@ -62,6 +62,9 @@ const FENCE_RE = /^\s*(?:>\s*)*(`{3,}|~{3,})/;
 const OPEN_DIV = /^\s*<div\b[^>]*\bdir\s*=\s*["'](rtl|ltr)["'][^>]*>\s*$/i;
 const ANY_OPEN_DIV = /^\s*<div\b/i;
 const CLOSE_DIV = /^\s*<\/div>\s*$/i;
+// a line whose whole content is one <span dir="..">…</span> (written by the "whole line" direction command)
+const SPAN_ONLY = /^<span dir="(rtl|ltr)">((?:(?!<\/span>)[\s\S])*)<\/span>$/;
+const HR_RE = /^\s*([-*_])(?:\s*\1){2,}\s*$/;
 
 // A run of Latin text (words joined by single spaces / . _ - / : ' @ &), e.g. "Visual Studio Code", "C++"
 const LATIN_RUN =
@@ -153,6 +156,13 @@ function detectDirection(rawText, mode) {
   const d = classifyText(s, mode);
   if (d) return d;
   return hadUrl ? "url" : null;
+}
+
+/** "rtl" | "ltr" when the whole content of the line (after markdown markers) is one <span dir> */
+function spanWrappedDir(text) {
+  const body = text.slice(LINE_PREFIX.exec(text)[0].length).replace(/\s+$/, "");
+  const m = SPAN_ONLY.exec(body);
+  return m ? m[1] : null;
 }
 
 /* =====================================================================
@@ -357,11 +367,15 @@ function walkLines(state, plugin, lastLine, cb) {
         divStack.pop();
       } else {
         plain = true;
+        const sw = spanWrappedDir(text);
         let forced = null;
         for (let i = divStack.length - 1; i >= 0; i--) {
           if (divStack[i]) { forced = divStack[i]; break; }
         }
-        if (forced) {
+        if (sw) {
+          dir = sw;
+          last = sw;
+        } else if (forced) {
           dir = forced;
           last = forced;
         } else if (noteDir) {
@@ -597,7 +611,7 @@ module.exports = class LFRExtensionPlugin extends Plugin {
     this.registerEditorExtension(makeEditorExtension(this));
 
     // 2) Smart direction in Reading view / PDF export
-    this.registerMarkdownPostProcessor((el, ctx) => this.processReading(el, ctx.sourcePath));
+    this.registerMarkdownPostProcessor((el, ctx) => this.processReading(el, ctx.sourcePath, ctx));
     this.setupWidgetObserver();
 
     // 3) Right-click menu: Format -> RTL / LTR, and Persian tools
@@ -721,13 +735,16 @@ module.exports = class LFRExtensionPlugin extends Plugin {
 
   /* ---------------- Reading view ---------------- */
 
-  processReading(el, sourcePath) {
+  processReading(el, sourcePath, ctx) {
     if (!this.settings.autoDirection) return;
     if (el.closest && el.closest(".cm-metadata-container, .metadata-container")) return;
 
     const file = sourcePath ? this.app.vault.getAbstractFileByPath(sourcePath) : null;
     const note = this.getNoteSettings(file instanceof TFile ? file : null);
-    const forced = note.direction === "rtl" || note.direction === "ltr" ? note.direction : null;
+    let forced = note.direction === "rtl" || note.direction === "ltr" ? note.direction : null;
+    // older notes: a <div dir> wrapper cut into separate blocks by Reading view
+    const sectionForced = this.sectionDirection(el, ctx);
+    if (sectionForced) forced = sectionForced;
 
     el.querySelectorAll("pre").forEach((p) => p.setAttribute("dir", "ltr"));
     el.querySelectorAll("a").forEach((a) => {
@@ -740,7 +757,7 @@ module.exports = class LFRExtensionPlugin extends Plugin {
     for (const t of targets) {
       if (t.hasAttribute("dir") && !t.hasAttribute("data-sb-auto")) continue; // explicit user direction
       if (this.hasExplicitDirAncestor(t)) continue;
-      const d = forced || this.elementDirection(t);
+      const d = this.wrappedDir(t) || forced || this.elementDirection(t);
       if (d) {
         t.setAttribute("dir", d);
         t.setAttribute("data-sb-auto", "1");
@@ -748,6 +765,71 @@ module.exports = class LFRExtensionPlugin extends Plugin {
     }
 
     if (this.settings.isolateRuns) this.isolateReadingRuns(el);
+  }
+
+  /** If a block's whole content is <span dir> element(s) of one direction, returns that direction */
+  wrappedDir(t) {
+    let dir = null;
+    const visit = (node) => {
+      for (const c of Array.from(node.childNodes)) {
+        if (c.nodeType === 3) {
+          if ((c.textContent || "").trim()) return false;
+          continue;
+        }
+        if (c.nodeType !== 1) continue;
+        const tag = c.tagName;
+        if (tag === "BR" || tag === "UL" || tag === "OL" || tag === "INPUT") continue;
+        if (tag === "P") {
+          if (!visit(c)) return false;
+          continue;
+        }
+        if (tag === "SPAN" && c.hasAttribute("dir") && !c.classList.contains("sb-run")) {
+          const d = c.getAttribute("dir");
+          if (d !== "rtl" && d !== "ltr") return false;
+          if (dir && dir !== d) return false;
+          dir = d;
+          continue;
+        }
+        return false;
+      }
+      return true;
+    };
+    return visit(t) ? dir : null;
+  }
+
+  /** Direction forced by a <div dir> wrapper around this Reading-view section (older notes) */
+  sectionDirection(el, ctx) {
+    if (!ctx || typeof ctx.getSectionInfo !== "function") return null;
+    try {
+      const info = ctx.getSectionInfo(el);
+      if (!info || typeof info.text !== "string") return null;
+      return this.forcedLinesFor(info.text)[info.lineStart] || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  forcedLinesFor(text) {
+    if (this._fcText === text) return this._fcLines;
+    const lines = text.split(/\r?\n/);
+    const out = new Array(lines.length).fill(null);
+    const scanner = new Scanner();
+    const stack = [];
+    for (let i = 0; i < lines.length; i++) {
+      const t = lines[i];
+      if (scanner.step(i + 1, t)) continue;
+      if (OPEN_DIV.test(t)) stack.push(OPEN_DIV.exec(t)[1].toLowerCase());
+      else if (ANY_OPEN_DIV.test(t)) stack.push(null);
+      else if (CLOSE_DIV.test(t)) stack.pop();
+      else {
+        for (let k = stack.length - 1; k >= 0; k--) {
+          if (stack[k]) { out[i] = stack[k]; break; }
+        }
+      }
+    }
+    this._fcText = text;
+    this._fcLines = out;
+    return out;
   }
 
   hasExplicitDirAncestor(node) {
@@ -1378,16 +1460,62 @@ module.exports = class LFRExtensionPlugin extends Plugin {
       return;
     }
 
-    const body = [];
-    for (let i = w.s; i <= w.e; i++) body.push(line(i));
-    const lastLen = line(w.e).length;
-    editor.replaceRange(
-      `<div dir="${dir}">\n\n${body.join("\n")}\n\n</div>`,
-      { line: w.s, ch: 0 },
-      { line: w.e, ch: lastLen }
-    );
-    // put the cursor at the end of the content so the hidden tags stay hidden
-    editor.setCursor({ line: w.e + 2, ch: lastLen });
+    // Whole lines: wrap the content of each line in <span dir>. Unlike a <div> around several
+    // blocks, this also works in Reading view and PDF export (each block is rendered separately there).
+    this.wrapLines(editor, w.s, w.e, dir);
+  }
+
+  /** Lines in a..b that can carry a direction span (not code, tables, rules, tags or empty) */
+  eligibleLines(editor, a, b) {
+    const scanner = new Scanner();
+    const out = [];
+    for (let i = 0; i <= b; i++) {
+      const text = editor.getLine(i);
+      const mono = scanner.step(i + 1, text);
+      if (i < a || mono) continue;
+      const t = text.trim();
+      if (!t || t.startsWith("|") || t.startsWith("%%") || HR_RE.test(text) || /^<\/?div\b/i.test(t)) continue;
+      if (!text.slice(LINE_PREFIX.exec(text)[0].length).trim()) continue;
+      out.push(i);
+    }
+    return out;
+  }
+
+  /** Rewrites the content (after the markdown markers) of the given lines */
+  rewriteLines(editor, a, b, idx, fn) {
+    const lines = [];
+    for (let i = a; i <= b; i++) lines.push(editor.getLine(i));
+    const lastLen = lines[lines.length - 1].length;
+    for (const i of idx) {
+      const text = lines[i - a];
+      const prefix = LINE_PREFIX.exec(text)[0];
+      const rest = text.slice(prefix.length);
+      const trail = /\s*$/.exec(rest)[0];
+      const core = rest.slice(0, rest.length - trail.length);
+      const m = SPAN_ONLY.exec(core);
+      lines[i - a] = prefix + fn(m ? m[2] : core) + trail;
+    }
+    editor.replaceRange(lines.join("\n"), { line: a, ch: 0 }, { line: b, ch: lastLen });
+    editor.setCursor({ line: b, ch: lines[lines.length - 1].length }); // keeps the hidden tags hidden
+  }
+
+  wrapLines(editor, a, b, dir) {
+    const idx = this.eligibleLines(editor, a, b);
+    if (!idx.length) {
+      new Notice("Nothing to change: code, tables, rules and empty lines are skipped.");
+      return;
+    }
+    // choosing the same direction again removes it
+    const allSame = idx.every((i) => spanWrappedDir(editor.getLine(i)) === dir);
+    this.rewriteLines(editor, a, b, idx, (inner) => (allSame ? inner : `<span dir="${dir}">${inner}</span>`));
+  }
+
+  /** Removes per-line direction spans; returns false when there was nothing to remove */
+  clearLines(editor, a, b) {
+    const idx = this.eligibleLines(editor, a, b).filter((i) => spanWrappedDir(editor.getLine(i)));
+    if (!idx.length) return false;
+    this.rewriteLines(editor, a, b, idx, (inner) => inner);
+    return true;
   }
 
   setInlineDirection(editor, from, to, lineText, dir) {
@@ -1453,7 +1581,7 @@ module.exports = class LFRExtensionPlugin extends Plugin {
     if (dir === "auto") {
       const w = this.findWrap(editor, bounds.a, bounds.b);
       if (w.open >= 0) this.unwrapBlock(editor, w);
-      else new Notice("This paragraph has no manual direction.");
+      else if (!this.clearLines(editor, bounds.a, bounds.b)) new Notice("This paragraph has no manual direction.");
       return;
     }
     this.setBlockDirection(editor, bounds.a, bounds.b, dir);

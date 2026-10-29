@@ -5,7 +5,7 @@
 <br>
 
 ![Obsidian](https://img.shields.io/badge/Obsidian-Plugin-7c3aed?style=for-the-badge&logo=obsidian&logoColor=white)
-![Version](https://img.shields.io/badge/version-1.2.0-2dd4bf?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.2.1-2dd4bf?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/Desktop%20%7C%20Mobile-supported-60a5fa?style=for-the-badge)
 ![RTL](https://img.shields.io/badge/RTL%20%2F%20LTR-smart-a78bfa?style=for-the-badge)
 
@@ -46,7 +46,7 @@
 - متن را انتخاب کنید ← کلیک راست ← **Format** ← **RTL** (با آیکون راست‌چین) یا **LTR** (با آیکون چپ‌چین).
 - فقط همان بخش انتخاب‌شده تغییر می‌کند:
   - انتخاب بخشی از یک خط ← با `<span dir="rtl">…</span>` پوشانده می‌شود.
-  - انتخاب یک خط کامل یا چند خط ← با `<div dir="rtl">…</div>` پوشانده می‌شود.
+  - انتخاب یک خط کامل یا چند خط ← محتوای هر خط با `<span dir="rtl">…</span>` پوشانده می‌شود (علامت‌های مارک‌داون مثل `#` و `-` و `>` بیرون آن می‌مانند و کد و جدول نادیده گرفته می‌شوند). به همین دلیل در **Reading view** و **خروجی PDF** هم اعمال می‌شود.
 - زدن دوباره‌ی همان جهت، قالب را برمی‌دارد و زدن جهت مخالف، جهت را عوض می‌کند.
 - در **Live Preview** تگ‌های `<span dir>` و `<div dir>` مخفی می‌شوند و فقط متن نهایی دیده می‌شود. با قرار دادن مکان‌نما روی آن‌ها (یا در Source mode) تگ‌ها نمایش داده می‌شوند.
 
@@ -151,7 +151,7 @@ xeno-rdx/LFR-Extension
 ## ⚠️ نکات مهم
 
 - زیرمنوی **Format** در کلیک راست API رسمی ندارد. افزونه آن را پیدا می‌کند و گزینه‌ها را به آن اضافه می‌کند. اگر در نسخه‌ای از Obsidian پیدا نشد، گزینه‌ها در یک زیرمنوی جدا به نام **Text direction** نمایش داده می‌شوند.
-- تغییر جهت دستی با تگ‌های HTML استاندارد ذخیره می‌شود، پس یادداشت‌ها در برنامه‌های دیگر هم جهت را حفظ می‌کنند.
+- تغییر جهت دستی با تگ‌های HTML استاندارد ذخیره می‌شود، پس یادداشت‌ها در برنامه‌های دیگر هم جهت را حفظ می‌کنند. یادداشت‌هایی که با نسخه‌های قبلی با `<div dir>` ساخته شده بودند هم خوانده می‌شوند.
 - ظاهر دقیق لیست‌ها، نقل‌قول‌ها و callout‌ها به تم انتخابی شما بستگی دارد؛ اگر در تمی چیزی کج دیده شد، Issue بزنید.
 - تغییر تنظیمات تشخیص جهت در Reading view بعد از باز کردن دوباره‌ی یادداشت اعمال می‌شود.
 - دکمه‌ی نوار وضعیت فقط در نسخه‌ی دسکتاپ نمایش داده می‌شود؛ در موبایل از دستورها استفاده کنید.
@@ -217,7 +217,7 @@ In right-to-left text these elements are mirrored too (can be turned off in the 
 - Select text → right-click → **Format** → **RTL** (align-right icon) or **LTR** (align-left icon).
 - Only the selected part is changed:
   - A partial selection inside a line is wrapped in `<span dir="rtl">…</span>`.
-  - A full line or several lines are wrapped in `<div dir="rtl">…</div>`.
+  - A full line or several lines get a `<span dir="rtl">…</span>` around the content of each line (markdown markers such as `#`, `-` and `>` stay outside; code and tables are skipped). This is why it also works in **Reading view** and **PDF export**.
 - Choosing the same direction again removes the wrapper; choosing the opposite direction switches it.
 - In **Live Preview** the `<span dir>` and `<div dir>` tags are hidden and only the final text is shown. Put the cursor on them (or use Source mode) to see the tags.
 
@@ -321,7 +321,7 @@ xeno-rdx/LFR-Extension
 ## ⚠️ Notes
 
 - The right-click **Format** submenu has no official API. The plugin locates it and appends its options. If it cannot be found in your Obsidian version, the options appear in a separate **Text direction** submenu instead.
-- Manual direction is stored with standard HTML tags, so your notes keep their direction in other apps too.
+- Manual direction is stored with standard HTML tags, so your notes keep their direction in other apps too. Notes made with `<div dir>` by earlier versions are still read correctly.
 - The exact look of lists, quotes and callouts depends on your theme; if something looks off in a theme, please open an issue.
 - Changing the detection settings takes effect in Reading view after re-opening the note.
 - The status bar button is desktop-only; on mobile use the commands.
